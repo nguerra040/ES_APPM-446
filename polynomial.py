@@ -8,6 +8,7 @@ Due Date: 9/30/22
 import numpy as np
 from sympy import simplify
 from sympy import expand
+from sympy import cancel
 
 
 class Polynomial:
@@ -166,7 +167,8 @@ class RationalPolynomial(Polynomial):
         return string
         
     def _simplify(self):
-        string = str(simplify(str(self))).replace('**','^')
+        # simplify and cancel (cancel puts into fraction)
+        string = str(cancel(simplify(str(self)))).replace('**','^')
         
         numerator_string = string.split('/')[0]
         # expands out top and bottom
