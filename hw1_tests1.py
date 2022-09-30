@@ -1,5 +1,3 @@
-import pytest
-
 from polynomial import Polynomial
 
 def test_polynomial_eq():
