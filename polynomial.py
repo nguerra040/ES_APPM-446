@@ -7,6 +7,7 @@ Due Date: 9/30/22
 """
 import numpy as np
 from sympy import simplify
+from sympy import expand
 
 
 class Polynomial:
