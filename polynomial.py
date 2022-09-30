@@ -168,9 +168,12 @@ class RationalPolynomial(Polynomial):
         string = str(simplify(str(self))).replace('**','^')
         
         numerator_string = string.split('/')[0]
+        # expands out top and bottom
+        numerator_string = str(expand(numerator_string)).replace('**','^')
         # try if there is a denominator
         try:
             denominator_string = string.split('/')[1]
+            denominator_string = str(expand(denominator_string)).replace('**','^')
         except IndexError:
             denominator_string = str(1)
         
