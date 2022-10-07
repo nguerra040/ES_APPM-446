@@ -29,3 +29,4 @@ jobs:
       run: |
         pytest hw1_tests1.py
         pytest hw1_tests2.py
+        pytest hw2_tests1.py
