@@ -168,12 +168,16 @@ class BackwardDifferentiationFormula(Timestepper):
         self.u = u
         self.L_op = L_op
         self.steps = steps
+        self.dt = None
         self.current_total_steps = 1
         self.u_archives = np.zeros((len(self.u),self.steps))
         # First column of u_archives is most recent
         self.u_archives[:,0] = np.copy(self.u)
         
     def _step(self, dt):
+        if dt != self.dt:
+            self.current_total_steps = 1
+            self.dt = np.copy(dt)
         if self.current_total_steps < self.steps:
             # Let's compute coefficient vector of ai and B0 where x=[a1,...,as,B0]:
             A = np.zeros((self.current_total_steps+1,self.current_total_steps+1))
