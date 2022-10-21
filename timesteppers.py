@@ -6,6 +6,9 @@ Due Date: 10/16/22
 """
 import numpy as np
 import scipy.sparse as sparse
+import math
+import scipy.sparse.linalg as spla
+from scipy.linalg import lu_factor, lu_solve
 
 class Timestepper:
 
@@ -133,3 +136,89 @@ class AdamsBashforth(Timestepper):
         self.u_archives[:,0] = np.copy(new_u)
         return new_u
         
+# IMPLICIT METHODS
+class BackwardEuler(Timestepper):
+    def __init__(self, u, L):
+        super().__init__(u, L)
+        N = len(u)
+        self.I = sparse.eye(N, N)
+    def _step(self, dt):
+        if dt != self.dt:
+            self.LHS = self.I - dt*self.func.matrix
+            self.LU = spla.splu(self.LHS.tocsc(), permc_spec='NATURAL')
+        self.dt = dt
+        return self.LU.solve(self.u)
+    
+class CrankNicolson(Timestepper):
+    def __init__(self, u, L_op):
+        super().__init__(u, L_op)
+        N = len(u)
+        self.I = sparse.eye(N, N)
+    def _step(self, dt):
+        if dt != self.dt:
+            self.LHS = self.I - dt/2*self.func.matrix
+            self.RHS = self.I + dt/2*self.func.matrix
+            self.LU = spla.splu(self.LHS.tocsc(), permc_spec='NATURAL')
+        self.dt = dt
+        return self.LU.solve(self.RHS @ self.u)
+    
+class BackwardDifferentiationFormula(Timestepper):
+    def __init__(self, u, L_op, steps):
+        super().__init__(u, L_op)
+        self.u = u
+        self.L_op = L_op
+        self.steps = steps
+        self.current_total_steps = 1
+        self.u_archives = np.zeros((len(self.u),self.steps))
+        # First column of u_archives is most recent
+        self.u_archives[:,0] = np.copy(self.u)
+        
+    def _step(self, dt):
+        if self.current_total_steps < self.steps:
+            # Let's compute coefficient vector of ai and B0 where x=[a1,...,as,B0]:
+            A = np.zeros((self.current_total_steps+1,self.current_total_steps+1))
+            A[1,-1] = 1
+            A[0,:-1] = np.ones(self.current_total_steps)
+            for i in range(1, self.current_total_steps+1):
+                for j in range(self.current_total_steps):
+                    A[i,j] = ((j+1)**i)/math.factorial(i)
+            b = np.zeros(self.current_total_steps+1)
+            b[0] = -1
+            lu, piv = lu_factor(A)
+            x = lu_solve((lu, piv), b)
+            self.x = x
+            
+            RHS = np.zeros(len(self.u))
+            for i in range(self.current_total_steps):
+                RHS += self.x[i]*self.u_archives[:,i]
+            LHS = np.identity(len(self.u)) - (dt*self.x[-1]*self.L_op.matrix)
+            lu, piv = lu_factor(LHS)
+            new_u = lu_solve((lu, piv), -RHS)
+            self.u_archives[:, 1:] = np.copy(self.u_archives[:, :-1])
+            self.u_archives[:, 0] = np.copy(new_u)
+            self.current_total_steps += 1
+            return new_u
+            
+        else:
+            # Let's compute coefficient vector of ai and B0 where x=[a1,...,as,B0]:
+            A = np.zeros((self.steps+1,self.steps+1))
+            A[1,-1] = 1
+            A[0,:-1] = np.ones(self.steps)
+            for i in range(1, self.steps+1):
+                for j in range(self.steps):
+                    A[i,j] = ((j+1)**i)/math.factorial(i)
+            b = np.zeros(self.steps+1)
+            b[0] = -1
+            lu, piv = lu_factor(A)
+            x = lu_solve((lu, piv), b)
+            self.x = x
+
+            RHS = np.zeros(len(self.u))
+            for i in range(self.steps):
+                RHS += self.x[i]*self.u_archives[:,i]
+            LHS = np.identity(len(self.u)) - (dt*self.x[-1]*self.L_op.matrix)
+            lu, piv = lu_factor(LHS)
+            new_u = lu_solve((lu, piv), -RHS)
+            self.u_archives[:, 1:] = np.copy(self.u_archives[:, :-1])
+            self.u_archives[:, 0] = np.copy(new_u)
+            return new_u
