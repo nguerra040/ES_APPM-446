@@ -35,3 +35,5 @@ jobs:
       if: always()
       run: |
         pytest hw2_test2.py
+        pytest hw3_tests2.py
+        pytest hw4_test1.py
