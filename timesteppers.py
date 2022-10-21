@@ -122,7 +122,7 @@ class AdamsBashforth(Timestepper):
         b = np.array([1, 4, 1])/6
         for i in range(1,steps):
             ts = Multistage(u_archives[:,i-1], self.func, stages, a, b)
-            ts.step(self.dt/10)
+            ts.step(self.dt/100)
             u_archives[:,i] = np.copy(ts.u)
         self.u_archives = np.copy(u_archives)
         self.u = np.copy(ts.u)
