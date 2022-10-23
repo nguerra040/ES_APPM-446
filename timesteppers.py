@@ -169,6 +169,7 @@ class BackwardDifferentiationFormula(Timestepper):
         self.L_op = L_op
         self.steps = steps
         self.dt = None
+        self.dt_array = np.array([])
         self.current_total_steps = 1
         self.u_archives = np.zeros((len(self.u),self.steps))
         # First column of u_archives is most recent
@@ -176,53 +177,52 @@ class BackwardDifferentiationFormula(Timestepper):
         
     def _step(self, dt):
         if dt != self.dt:
-            self.current_total_steps = 1
             self.dt = np.copy(dt)
         if self.current_total_steps < self.steps:
+            # Append most recent to top
+            self.dt_array = np.append(self.dt, self.dt_array)
             # Let's compute coefficient vector of ai and B0 where x=[a1,...,as,B0]:
             A = np.zeros((self.current_total_steps+1,self.current_total_steps+1))
-            A[1,-1] = 1
-            A[0,:-1] = np.ones(self.current_total_steps)
+            A[0,:] = 1
             for i in range(1, self.current_total_steps+1):
-                for j in range(self.current_total_steps):
-                    A[i,j] = ((j+1)**i)/math.factorial(i)
+                for j in range(1, self.current_total_steps+1):
+                    A[i,j] = (sum(self.dt_array[:j])**i)/math.factorial(i)
             b = np.zeros(self.current_total_steps+1)
-            b[0] = -1
+            b[1] = 1
             lu, piv = lu_factor(A)
+            # x is the coefficients with a0 at the top
             x = lu_solve((lu, piv), b)
-            self.x = x
+            self.x = -1*np.copy(x)
             
-            RHS = np.zeros(len(self.u))
-            for i in range(self.current_total_steps):
-                RHS += self.x[i]*self.u_archives[:,i]
-            LHS = np.identity(len(self.u)) - (dt*self.x[-1]*self.L_op.matrix)
+            RHS = -1*(self.u_archives[:,:self.current_total_steps] @ self.x[1:])
+            LHS =  self.x[0]*np.identity(len(self.u)) - self.L_op.matrix
             lu, piv = lu_factor(LHS)
-            new_u = lu_solve((lu, piv), -RHS)
+            new_u = lu_solve((lu, piv), RHS)
             self.u_archives[:, 1:] = np.copy(self.u_archives[:, :-1])
             self.u_archives[:, 0] = np.copy(new_u)
             self.current_total_steps += 1
             return new_u
             
         else:
+            # Append most recent to top
+            self.dt_array = np.append(self.dt, self.dt_array)
             # Let's compute coefficient vector of ai and B0 where x=[a1,...,as,B0]:
             A = np.zeros((self.steps+1,self.steps+1))
-            A[1,-1] = 1
-            A[0,:-1] = np.ones(self.steps)
+            A[0,:] = 1
             for i in range(1, self.steps+1):
-                for j in range(self.steps):
-                    A[i,j] = ((j+1)**i)/math.factorial(i)
+                for j in range(1, self.steps+1):
+                    A[i,j] = (sum(self.dt_array[:j])**i)/math.factorial(i)
             b = np.zeros(self.steps+1)
-            b[0] = -1
+            b[1] = 1
             lu, piv = lu_factor(A)
+            # x is the coefficients with a0 at the top
             x = lu_solve((lu, piv), b)
-            self.x = x
-
-            RHS = np.zeros(len(self.u))
-            for i in range(self.steps):
-                RHS += self.x[i]*self.u_archives[:,i]
-            LHS = np.identity(len(self.u)) - (dt*self.x[-1]*self.L_op.matrix)
+            self.x = -1*np.copy(x)
+            
+            RHS = -1*(self.u_archives @ self.x[1:])
+            LHS =  self.x[0]*np.identity(len(self.u)) - self.L_op.matrix
             lu, piv = lu_factor(LHS)
-            new_u = lu_solve((lu, piv), -RHS)
+            new_u = lu_solve((lu, piv), RHS)
             self.u_archives[:, 1:] = np.copy(self.u_archives[:, :-1])
             self.u_archives[:, 0] = np.copy(new_u)
             return new_u
