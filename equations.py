@@ -79,7 +79,7 @@ class ReactionDiffusion:
     
     def __init__(self, c, d2, c_target, D):
         self.X = StateVector([c])
-        N = len(U)
+        N = len(c)
         
         self.M = sparse.eye(N,N)
         self.L = -D*d2.matrix
