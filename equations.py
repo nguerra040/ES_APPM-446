@@ -19,7 +19,7 @@ class ReactionDiffusion2D:
     
     class Reaction:
         
-        def __init__(self, c, D, dx2):
+        def __init__(self, c):
             self.X = StateVector([c])
             self.F = lambda X: X.data*(1-X.data)
             
