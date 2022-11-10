@@ -6,7 +6,7 @@ import numpy as np
 class ReactionDiffusion2D:
 
     def __init__(self, c, D, dx2, dy2):
-        self.react = self.Reaction(c, D, dx2)
+        self.react = self.Reaction(c)
         self.diffx = self.Diffusion_x(c, D, dx2)
         self.diffy = self.Diffusion_y(c, D, dy2)
         self.ts_react = RK22(self.react)
