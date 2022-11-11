@@ -30,8 +30,4 @@ jobs:
     - name: Test script with pytest
       if: always()
       run: |
-        pytest hw6_test1.py
-    - name: Test script with pytest
-      if: always()
-      run: |
-        pytest hw6_test2.py
+        pytest hw7_test1.py
