@@ -142,9 +142,11 @@ class Wave2DBC:
         self.X = StateVector([u, v, p])
         
         def F(X):
-            F0 = -dx.matrix @ X.variables[2][:][:]
-            F1 = -dy.matrix @ X.variables[2][:][:]
-            F2 = -dx.matrix @ X.variables[0][:][:] - dy.matrix @ X.variables[1][:][:]
+            u_len_row = np.shape(X.variables[0][:][:])[0]
+            v_len_row = np.shape(X.variables[1][:][:])[0]
+            F0 = -dx.matrix @ X.data[(u_len_row+v_len_row):,:]
+            F1 = -dy.matrix @ X.data[(u_len_row+v_len_row):,:]
+            F2 = -dx.matrix @ X.data[:u_len_row,:] - dy.matrix @ X.data[u_len_row:(u_len_row+v_len_row),:]
             return np.concatenate((F0, F1, F2), axis=0)
         self.F = F
         
