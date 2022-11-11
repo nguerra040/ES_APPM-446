@@ -74,115 +74,6 @@ class DiffusionBC:
         self.t += dt
         self.iter += 1    
         
-class Wave2DBC:
-    
-    def __init__(self, u, v, p, spatial_order, domain):
-        grid_x = domain.grids[0]
-        grid_y = domain.grids[1]
-        dx = finite.DifferenceUniformGrid(1, spatial_order, grid_x, 0)
-        dy = finite.DifferenceUniformGrid(1, spatial_order, grid_y, 1)
-        
-        self.wavex = self.Wave_x(u, v, p, dx)
-        self.wavey = self.Wave_y(u, v, p, dy)
-        self.ts_wavex = RK22(self.wavex)
-        self.ts_wavey = RK22(self.wavey)
-        self.dt = None
-        self.iter = 0
-        self.t = 0
-
-    
-    class Wave_x:
-        def __init__(self, u, v, p, dx):
-            self.X = StateVector([u, v, p])
-            
-            def F(X):
-                u_len_row = np.shape(X.variables[0][:][:])[0]
-                v_len_row = np.shape(X.variables[1][:][:])[0]
-                F0 = -dx.matrix @ X.data[(u_len_row+v_len_row):,:]
-                F1 = 0*X.data[u_len_row:(u_len_row+v_len_row),:]
-                F2 = -dx.matrix @ X.data[:u_len_row,:]
-                return np.concatenate((F0, F1, F2), axis=0)
-            self.F = F
-            
-            def BC(X):
-                u_len_row = np.shape(X.variables[0][:][:])[0]
-                v_len_row = np.shape(X.variables[1][:][:])[0]
-                X.data[:(u_len_row+v_len_row),0] = 0
-                X.data[:(u_len_row+v_len_row),-1] = 0
-            self.BC = BC
-            
-    class Wave_y:
-        def __init__(self, u, v, p, dy):
-            self.X = StateVector([u, v, p])
-            def F(X):
-                u_len_row = np.shape(X.variables[0][:][:])[0]
-                v_len_row = np.shape(X.variables[1][:][:])[0]
-                F0 = 0*X.data[:u_len_row,:]
-                F1 = -dy.matrix @ X.data[(u_len_row+v_len_row):,:]
-                F2 = -dy.matrix @ X.data[u_len_row:(u_len_row+v_len_row),:]
-                return np.concatenate((F0, F1, F2), axis=0)
-            self.F = F
-    
-    def step(self, dt):
-        self.ts_wavey.step(dt)
-        self.ts_wavex.step(dt)
-
-        self.dt = dt
-        self.t += dt
-        self.iter += 1
-        
-# class Wave2DBC:
-    
-#     def __init__(self, u, v, p, spatial_order, domain):
-#         grid_x = domain.grids[0]
-#         grid_y = domain.grids[1]
-#         dx = finite.DifferenceUniformGrid(1, spatial_order, grid_x, 0)
-#         dy = finite.DifferenceUniformGrid(1, spatial_order, grid_y, 1)
-        
-#         u_big = np.concatenate((u, v), axis=0)
-#         self.wavex = self.Wave_x(u_big, p, dx)
-#         self.wavey = self.Wave_y(u_big, p, dy)
-#         self.ts_wavex = RK22(self.wavex)
-#         self.ts_wavey = RK22(self.wavey)
-#         self.dt = None
-#         self.iter = 0
-#         self.t = 0
-
-    
-#     class Wave_x:
-#         def __init__(self, u_big, p, dx):
-#             self.X = StateVector([u_big, p])
-            
-#             def F(X):
-#                 F0 = -dx.matrix @ X.variables[1,:,:]
-#                 F1 = -dx.matrix @ X.variables[0,:,:]
-#                 return np.concatenate((F0, F1), axis=0)
-#             self.F = F
-            
-#             def BC(X):
-#                 u = X.variables[0,:,:]
-#                 u[:,0] = 0
-#                 u[:,-1] = 0
-#             self.BC = BC
-            
-#     class Wave_y:
-#         def __init__(self, u_big, p, dy):
-#             self.X = StateVector([u_big, p])
-#             def F(X):
-#                 # Flip and negate
-#                 F0 = X.variables[1,:,:] @ dy.matrix
-#                 F1 = X.variables[0,:,:] @ dy.matrix
-#                 return np.concatenate((F0, F1), axis=0)
-#             self.F = F
-    
-#     def step(self, dt):
-#         self.ts_wavey.step(dt)
-#         self.ts_wavex.step(dt)
-
-#         self.dt = dt
-#         self.t += dt
-#         self.iter += 1
-
 # class Wave2DBC:
     
 #     def __init__(self, u, v, p, spatial_order, domain):
@@ -202,28 +93,34 @@ class Wave2DBC:
     
 #     class Wave_x:
 #         def __init__(self, u, v, p, dx):
-#             self.X = StateVector([u, v, p, p])
+#             self.X = StateVector([u, v, p])
             
 #             def F(X):
-#                 F0 = -dx.matrix @ X.variables[1,:,:]
-#                 F1 = -dx.matrix @ X.variables[0,:,:]
-#                 return np.concatenate((F0, F1), axis=0)
+#                 u_len_row = np.shape(X.variables[0][:][:])[0]
+#                 v_len_row = np.shape(X.variables[1][:][:])[0]
+#                 F0 = -dx.matrix @ X.data[(u_len_row+v_len_row):,:]
+#                 F1 = 0*X.data[u_len_row:(u_len_row+v_len_row),:]
+#                 F2 = -dx.matrix @ X.data[:u_len_row,:]
+#                 return np.concatenate((F0, F1, F2), axis=0)
 #             self.F = F
             
 #             def BC(X):
-#                 u = X.variables[0,:,:]
-#                 u[:,0] = 0
-#                 u[:,-1] = 0
+#                 u_len_row = np.shape(X.variables[0][:][:])[0]
+#                 v_len_row = np.shape(X.variables[1][:][:])[0]
+#                 X.data[:(u_len_row+v_len_row),0] = 0
+#                 X.data[:(u_len_row+v_len_row),-1] = 0
 #             self.BC = BC
             
 #     class Wave_y:
-#         def __init__(self, u_big, p, dy):
-#             self.X = StateVector([u_big, p])
+#         def __init__(self, u, v, p, dy):
+#             self.X = StateVector([u, v, p])
 #             def F(X):
-#                 # Flip and negate
-#                 F0 = X.variables[1,:,:] @ dy.matrix
-#                 F1 = X.variables[0,:,:] @ dy.matrix
-#                 return np.concatenate((F0, F1), axis=0)
+#                 u_len_row = np.shape(X.variables[0][:][:])[0]
+#                 v_len_row = np.shape(X.variables[1][:][:])[0]
+#                 F0 = 0*X.data[:u_len_row,:]
+#                 F1 = -dy.matrix @ X.data[(u_len_row+v_len_row):,:]
+#                 F2 = -dy.matrix @ X.data[u_len_row:(u_len_row+v_len_row),:]
+#                 return np.concatenate((F0, F1, F2), axis=0)
 #             self.F = F
     
 #     def step(self, dt):
@@ -233,6 +130,30 @@ class Wave2DBC:
 #         self.dt = dt
 #         self.t += dt
 #         self.iter += 1
+        
+class Wave2DBC:
+    
+    def __init__(self, u, v, p, spatial_order, domain):
+        grid_x = domain.grids[0]
+        grid_y = domain.grids[1]
+        dx = finite.DifferenceUniformGrid(1, spatial_order, grid_x, 0)
+        dy = finite.DifferenceUniformGrid(1, spatial_order, grid_y, 1)
+        
+        self.X = StateVector([u, v, p])
+        
+        def F(X):
+            F0 = -dx.matrix @ X.variables[2][:][:]
+            F1 = -dy.matrix @ X.variables[2][:][:]
+            F2 = -dx.matrix @ X.variables[0][:][:] - dy.matrix @ X.variables[1][:][:]
+            return np.concatenate((F0, F1, F2), axis=0)
+        self.F = F
+        
+        def BC(X):
+            u_len_row = np.shape(X.variables[0][:][:])[0]
+            v_len_row = np.shape(X.variables[1][:][:])[0]
+            X.data[:(u_len_row+v_len_row),0] = 0
+            X.data[:(u_len_row+v_len_row),-1] = 0
+        self.BC = BC
     
 class ReactionDiffusion2D:
 
